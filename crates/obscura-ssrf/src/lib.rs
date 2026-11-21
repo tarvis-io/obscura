@@ -7,6 +7,9 @@
 //! images and fonts) both enforce the same deny-set from here, so the checks
 //! can never disagree.
 
+mod app_policy;
+pub use app_policy::{resolve_app, validate_app_url};
+
 use std::net::{IpAddr, Ipv4Addr};
 
 /// Process-wide opt-in via env var. Older flow that issue #4 introduced. The

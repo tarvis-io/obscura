@@ -610,7 +610,7 @@ impl Default for CallbackRegistry {
     }
 }
 
-pub use obscura_ssrf::{env_allows_private_network, is_forbidden_ip};
+pub use obscura_ssrf::{env_allows_private_network, is_forbidden_ip, validate_app_url};
 
 /// DNS resolver that performs the lookup and then rejects the whole request if
 /// ANY resolved address is in the SSRF deny-set. This closes the DNS-rebinding
@@ -638,6 +638,10 @@ impl Resolve for SsrfGuardResolver {
         let allow = self.allow_private || env_allows_private_network();
         let host = name.as_str().to_string();
         Box::pin(async move {
+            if let Some(granted) = obscura_ssrf::resolve_app(&host) {
+                let iter: Addrs = Box::new(granted?.into_iter());
+                return Ok(iter);
+            }
             let addrs: Vec<SocketAddr> = tokio::net::lookup_host((host.as_str(), 0))
                 .await
                 .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { Box::new(e) })?
@@ -659,6 +663,7 @@ impl Resolve for SsrfGuardResolver {
 }
 
 pub(crate) fn validate_url(url: &Url, allow_private_network: bool) -> Result<(), ObscuraNetError> {
+    obscura_ssrf::validate_app_url(url).map_err(ObscuraNetError::Network)?;
     let allow_private_network = allow_private_network || env_allows_private_network();
     let scheme = url.scheme();
     if scheme != "http" && scheme != "https" && scheme != "file" {
