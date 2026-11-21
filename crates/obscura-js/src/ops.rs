@@ -6775,6 +6775,7 @@ mod tests {
 }
 
 fn validate_fetch_url(url: &url::Url, allow_private_network: bool) -> Result<(), String> {
+    obscura_net::validate_app_url(url)?;
     let scheme = url.scheme();
     // file:// is denied by default here, matching Page.navigate /
     // Target.createTarget (which gate it behind --allow-file-access). The

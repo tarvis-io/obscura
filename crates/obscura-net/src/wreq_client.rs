@@ -37,6 +37,10 @@ impl wreq::dns::Resolve for SsrfGuardResolver {
         let allow = self.allow_private || env_allows_private_network();
         let host = name.as_str().to_string();
         Box::pin(async move {
+            if let Some(granted) = obscura_ssrf::resolve_app(&host) {
+                let iter: wreq::dns::Addrs = Box::new(granted?.into_iter());
+                return Ok(iter);
+            }
             let addrs: Vec<std::net::SocketAddr> = tokio::net::lookup_host((host.as_str(), 0))
                 .await
                 .map_err(|e| -> Box<dyn Error + Send + Sync> { Box::new(e) })?
